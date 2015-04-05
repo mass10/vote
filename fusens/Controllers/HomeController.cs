@@ -26,5 +26,12 @@ namespace fusens.Controllers
 
 			return View();
 		}
+
+		public ActionResult Regist()
+		{
+			//ViewBag.Message = "Your contact page.";
+
+			return View("~/Views/Home/Index.cshtml");
+		}
 	}
 }
