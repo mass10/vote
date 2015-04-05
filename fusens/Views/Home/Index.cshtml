@@ -2,6 +2,13 @@
 	ViewBag.Title = "Vote";
 }
 
+<script>
+	function _on_regist() {
+		document.forms[0].action = "/Home/Regist";
+		document.forms[0].method = "post";
+		document.forms[0].submit();
+	}
+</script>
 <div class="jumbotron">
 	<p class="lead">現在のタグ</p>
 	<table border="1">
@@ -11,7 +18,7 @@
 		</tr>
 		<tr>
 			<td><input type="text" id="new_tag_name" name="new_tag_name" style="width: 200px" /></td>
-			<td>@Html.ActionLink("登録", "Regist")</td>
+			<td><input type="submit" id="" name="" value="登録" onclick="javascript: _on_regist();" /></td>
 		</tr>
 		@foreach (string s in GlobalQueue.tags())
 		{
