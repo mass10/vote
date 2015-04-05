@@ -14,27 +14,28 @@
 
 
 
-	<p class="lead">話題・キーワードを投稿する</p>
+	<p class="lead">興味のある話題やキーワードを投稿してください</p>
 	<input type="text" id="new_tag_name" name="new_tag_name"/>
 	<input type="submit" id="" name="" value="  送信  " onclick="javascript: _on_regist();" />
 
 
 
 	<br />
-	<p class="lead">現在のタグ</p>
+	<br />
+	<br />
+	<br />
+	<p class="lead">興味のある話題やキーワードに投票してください。より多くの人が関心を示したものから順番に表示されます。</p>
 	<table border="1">
 		<tr>
-			<th>話題・キーワード</th>
+			<th>興味のある話題・キーワード</th>
 			<th>ポイント☆</th>
-			<th>削除(一発で消えるから注意！)</th>
 		</tr>
 		@foreach (System.Data.DataRow row in GlobalQueue.rows())
 		{
 			string s = "" + row["tag"];
 			<tr>
 				<td>@s</td>
-				<td>@row["count"] @Html.ActionLink("この話題に投票する", "Index", "./Home/Vote", new { tag = "" + s }, null)</td>
-				<td>@Html.ActionLink("Delete", "Index", "./Home/Delete", new { tag = "" + s }, null)</td>
+				<td>@row["count"] @Html.ActionLink("私も聞きたい", "Index", "./Home/Vote", new { tag = "" + s }, null)</td>
 			</tr>
 		}
 	</table>

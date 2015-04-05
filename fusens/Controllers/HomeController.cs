@@ -25,11 +25,29 @@ namespace fusens.Controllers
 			return View();
 		}
 
-		public ActionResult Regist()
+		public ActionResult Regist(string new_tag_name)
 		{
 			//ViewBag.Message = "Your contact page.";
-			string new_tag_name = "" + this.Request.Form["new_tag_name"];
-			GlobalQueue.push(new_tag_name);
+
+	
+			
+			if (new_tag_name == null)
+				return this.Redirect("/");
+			if (new_tag_name == "")
+				return this.Redirect("/");
+
+			if (new_tag_name.StartsWith("/del "))
+			{
+				GlobalQueue.delete(new_tag_name.Substring(5));
+			}
+			else if (new_tag_name.StartsWith("/delete "))
+			{
+				GlobalQueue.delete(new_tag_name.Substring(8));
+			}
+			else
+			{
+				GlobalQueue.push(new_tag_name);
+			}
 			return this.Redirect("/");
 		}
 
