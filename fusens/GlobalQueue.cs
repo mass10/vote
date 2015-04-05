@@ -49,9 +49,10 @@ namespace fusens
 			return response;
 		}
 
-		public static System.Data.DataRowCollection rows()
+		public static System.Data.DataRow[] rows()
 		{
-			return _get_table().Rows;
+			System.Data.DataTable t = _get_table();
+			return t.Select("", "count desc");
 		}
 
 		private static System.Data.DataTable _get_table()

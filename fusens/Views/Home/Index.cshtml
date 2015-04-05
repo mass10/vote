@@ -14,7 +14,7 @@
 
 
 
-	<p class="lead">キーワードを投稿する</p>
+	<p class="lead">話題・キーワードを投稿する</p>
 	<input type="text" id="new_tag_name" name="new_tag_name"/>
 	<input type="submit" id="" name="" value="  送信  " onclick="javascript: _on_regist();" />
 
@@ -24,9 +24,9 @@
 	<p class="lead">現在のタグ</p>
 	<table border="1">
 		<tr>
-			<th>キーワード</th>
+			<th>話題・キーワード</th>
 			<th>ポイント☆</th>
-			<th>削除(注意！)</th>
+			<th>削除(一発で消えるから注意！)</th>
 		</tr>
 		@foreach (System.Data.DataRow row in GlobalQueue.rows())
 		{

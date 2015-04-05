@@ -16,44 +16,34 @@ namespace fusens.Controllers
 		public ActionResult About()
 		{
 			ViewBag.Message = "Your application description page.";
-
 			return View();
 		}
 
 		public ActionResult Contact()
 		{
 			ViewBag.Message = "Your contact page.";
-
 			return View();
 		}
 
 		public ActionResult Regist()
 		{
 			//ViewBag.Message = "Your contact page.";
-
 			string new_tag_name = "" + this.Request.Form["new_tag_name"];
-
 			GlobalQueue.push(new_tag_name);
-
-			return View("~/Views/Home/Index.cshtml");
+			return this.Redirect("/");
 		}
 
 		public ActionResult Vote(string tag)
 		{
 			GlobalQueue.push(tag);
-
 			return this.Redirect("/");
 		}
 
 		public ActionResult Delete(string tag)
 		{
 			ViewBag.Message = "removed.";
-
 			GlobalQueue.delete(tag);
-
 			return this.Redirect("/");
-
-			//return View("~/Views/Home/Index.cshtml");
 		}
 	}
 }
