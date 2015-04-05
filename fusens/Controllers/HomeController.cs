@@ -31,7 +31,29 @@ namespace fusens.Controllers
 		{
 			//ViewBag.Message = "Your contact page.";
 
+			string new_tag_name = "" + this.Request.Form["new_tag_name"];
+
+			GlobalQueue.push(new_tag_name);
+
 			return View("~/Views/Home/Index.cshtml");
+		}
+
+		public ActionResult Vote(string tag)
+		{
+			GlobalQueue.push(tag);
+
+			return this.Redirect("/");
+		}
+
+		public ActionResult Delete(string tag)
+		{
+			ViewBag.Message = "removed.";
+
+			GlobalQueue.delete(tag);
+
+			return this.Redirect("/");
+
+			//return View("~/Views/Home/Index.cshtml");
 		}
 	}
 }
