@@ -29,5 +29,7 @@ namespace fusens.Models
         {
             return new ApplicationDbContext();
         }
+
+		public System.Data.Entity.DbSet<fusens.Models.Content> Contents { get; set; }
     }
 }
