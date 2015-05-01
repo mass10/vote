@@ -21,7 +21,7 @@
 <div class="jumbotron">
 
 	<p class="lead">興味のある話題やキーワードを投稿してください</p>
-	<input type="text" id="new_tag_name" name="new_tag_name"/>
+	<input type="text" id="new_tag_name" name="new_tag_name" size="80%"/>
 	<input type="submit" id="" name="" value="  送信  " onclick="javascript: _on_regist();" />
 
 
@@ -37,8 +37,6 @@
 			<th>ポイント☆</th>
 		</tr>
 		@{
-			System.Diagnostics.Debug.WriteLine("全てのレコードを抽出しています...");
-			//var rows = GlobalQueue.rows().ConfigureAwait(false).GetAwaiter().GetResult();
 			var rows = GlobalQueue.EnumAll();
 		}
 		@foreach (System.Data.DataRow row in rows)
@@ -46,7 +44,7 @@
 			string s = "" + row["tag"];
 			<tr>
 				<td>@s</td>
-				<td>@row["count"] @Html.ActionLink("私も聞きたい", "Index", "./Home/Vote", new { tag = "" + s }, null)</td>
+				<td>@row["count"] @Html.ActionLink("興味あり", "Index", "./Home/Vote", new { tag = "" + s }, null)</td>
 			</tr>
 		}
 	</table>
