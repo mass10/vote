@@ -3,16 +3,22 @@
 }
 
 <script>
+
+	function _on_load() {
+		document.forms[0]["new_tag_name"].focus();
+	}
+
 	function _on_regist() {
 		document.forms[0].action = "/Home/Regist";
 		document.forms[0].method = "post";
 		document.forms[0].submit();
 	}
+
+	window.onload = _on_load;
+
 </script>
 
 <div class="jumbotron">
-
-
 
 	<p class="lead">興味のある話題やキーワードを投稿してください</p>
 	<input type="text" id="new_tag_name" name="new_tag_name"/>
@@ -30,7 +36,12 @@
 			<th>興味のある話題・キーワード</th>
 			<th>ポイント☆</th>
 		</tr>
-		@foreach (System.Data.DataRow row in GlobalQueue.rows())
+		@{
+			System.Diagnostics.Debug.WriteLine("全てのレコードを抽出しています...");
+			//var rows = GlobalQueue.rows().ConfigureAwait(false).GetAwaiter().GetResult();
+			var rows = GlobalQueue.EnumAll();
+		}
+		@foreach (System.Data.DataRow row in rows)
 		{
 			string s = "" + row["tag"];
 			<tr>
@@ -39,7 +50,5 @@
 			</tr>
 		}
 	</table>
-
-
 
 </div>
