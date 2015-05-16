@@ -139,7 +139,11 @@ namespace fusens
 			c.ContentType = "application/json";
 			c.Headers.Add("X-Parse-Application-Id", "JycUHdjGxwuARBrDtJSD2yptpesBxyQDgzfN2aDE");
 			c.Headers.Add("X-Parse-REST-API-Key", "Kz7JypdKJWxdHa8sGtUPIJpZdOl1GKb8nlCERSnV");
-			string json_query = "{\"content\": \"" + content + "\", \"count\": " + 1 + "}";
+
+			System.Collections.Hashtable t = new System.Collections.Hashtable();
+			t["content"] = content;
+			t["count"] = 1;
+			string json_query = JsonConvert.SerializeObject(t);
 
 			// request
 			System.IO.Stream request_stream = c.GetRequestStream();
