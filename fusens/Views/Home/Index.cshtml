@@ -44,7 +44,7 @@
 			string s = "" + row["tag"];
 			<tr>
 				<td>@s</td>
-				<td>@row["count"] @Html.ActionLink("興味あり", "Index", "./Home/Vote", new { tag = "" + s }, null)</td>
+				<td nowrap>@row["count"] @Html.ActionLink("興味あり", "Index", "./Home/Vote", new { tag = "" + s }, null)</td>
 			</tr>
 		}
 	</table>
