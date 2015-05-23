@@ -1,62 +1,49 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Data;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
-using Parse;
-using Newtonsoft.Json;
 
 namespace fusens
 {
 	public sealed class GlobalQueue
 	{
-		private static readonly string TABLE_NAME = "TestObject";
-
-		static GlobalQueue()
-		{
-		}
-
 		private GlobalQueue()
 		{
 		}
 
-		private static System.Data.DataTable _create_schema()
+		private static DataTable _create_schema()
 		{
-			System.Data.DataTable t = new System.Data.DataTable();
+			DataTable t = new DataTable();
 			t.Columns.Add("objectId", typeof(string));
 			t.Columns.Add("tag", typeof(string));
 			t.Columns.Add("count", typeof(int));
-			t.PrimaryKey = new System.Data.DataColumn[] { t.Columns["objectId"] };
+			t.PrimaryKey = new DataColumn[] { t.Columns["objectId"] };
 			t.AcceptChanges();
 			return t;
 		}
 
-		private static object _head(System.Collections.ICollection list)
+
+		private static DataTable _extract(object unknown)
 		{
-			foreach (object e in list)
-				return e;
-			return null;
-		}
-
-		private static System.Data.DataTable _extract(object unknown)
-		{
-			if(!(unknown is System.Collections.ICollection))
+			object first_entity = Util.TryPop(unknown);
+			if(!(first_entity is JProperty))
 				return null;
 
-			System.Collections.ICollection list = (System.Collections.ICollection)unknown;
-			if(list.Count == 0)
-				return null;
-
-			object first_entity = _head(list);
-			if(!(first_entity is Newtonsoft.Json.Linq.JProperty))
-				return null;
-
-			Newtonsoft.Json.Linq.JProperty property = (Newtonsoft.Json.Linq.JProperty)first_entity;
+			JProperty property = (JProperty)first_entity;
 			if (property.Name != "results")
 				return null;
 			
-			System.Data.DataTable t = _create_schema();
+			DataTable t = _create_schema();
 			
 			foreach (var e in property.Value)
 			{
@@ -65,7 +52,7 @@ namespace fusens
 				if (content == "")
 					continue;
 				
-				System.Data.DataRow row = t.NewRow();
+				DataRow row = t.NewRow();
 				row["objectId"] = "" + e["objectId"];
 				row["tag"] = content;
 				row["count"] = count;
@@ -78,140 +65,151 @@ namespace fusens
 			return t;
 		}
 
-		public static System.Data.DataRow[] EnumAll()
+		private static string _send_request(string url)
 		{
-			System.Net.Http.HttpClient client = new System.Net.Http.HttpClient();
-			client.DefaultRequestHeaders.Add("X-Parse-Application-Id", "JycUHdjGxwuARBrDtJSD2yptpesBxyQDgzfN2aDE");
-			client.DefaultRequestHeaders.Add("X-Parse-REST-API-Key", "Kz7JypdKJWxdHa8sGtUPIJpZdOl1GKb8nlCERSnV");
-			System.Net.Http.HttpResponseMessage response = client.GetAsync("https://api.parse.com/1/classes/TestObject").GetAwaiter().GetResult();
+			// 特別なヘッダーを付けて簡単な GET リクエスト
+			HttpClient client = new HttpClient();
+			client.DefaultRequestHeaders.Add(Keys.APP_KEY, _get_applcation_id());
+			client.DefaultRequestHeaders.Add(Keys.REST_API_KEY, _get_api_key());
+			HttpResponseMessage response = client.GetAsync(url).GetAwaiter().GetResult();
+			string content = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Debug.WriteLine(content);
+			return content;
+		}
 
-			string all_content = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-			Debug.WriteLine(all_content);
+		public static DataRow[] EnumAll()
+		{
+			// リクエスト(全件抽出)
+			string all_content = _send_request("https://api.parse.com/1/classes/TestObject");
 
+			// JSON の読み取り
 			var json_tree = JsonConvert.DeserializeObject(all_content);
-			System.Data.DataTable t = _extract(json_tree);
+			DataTable t = _extract(json_tree);
+	
+			// レスポンス
 			if(t == null)
-				return new System.Data.DataRow[] { };
+				return new DataRow[] { };
 			return t.Select("", "count desc");
 		}
 
-		public static async Task<System.Data.DataRow[]> rows()
+		public static void Delete(string s)
 		{
-			ParseClient.Initialize("JycUHdjGxwuARBrDtJSD2yptpesBxyQDgzfN2aDE", "TblUMNuA3fSoguGs7QA7jPNyIx40qfA3fslpc89t");
+			if (s == null)
+				return;
+			if (s == "")
+				return;
 
-			System.Data.DataTable t = _create_schema();
-
-			//
-			// クエリ(全行)
-			//
-			ParseQuery<ParseObject> query = new ParseQuery<ParseObject>(TABLE_NAME);
-			IEnumerable<ParseObject> result = await query.FindAsync().ConfigureAwait(false);
-			foreach (var e in result)
-			{
-				string content = "";
-				int count = 0;
-				e.TryGetValue("content", out content);
-				if (content == null)
-					continue;
-				if (content == "")
-					continue;
-				e.TryGetValue("count", out count);
-				System.Data.DataRow row = t.NewRow();
-				row["tag"] = content;
-				row["count"] = count;
-				t.Rows.Add(row);
-			}
-
-			t.AcceptChanges();
-			return t.Select("", "count desc");
-		}
-
-		public static void delete(string key)
-		{
-			_delete(key);
+			// TODO: 削除処理
 		}
 
 		private static void CreateNew(string content)
 		{
-			string url = "https://api.parse.com/1/classes/TestObject";
-			System.Net.HttpWebRequest c = System.Net.HttpWebRequest.CreateHttp(url);
+			// ================================================================
+			// creating a request...
+			// ================================================================
+			HttpWebRequest c = _create_requester("https://api.parse.com/1/classes/TestObject");
 			c.Method = "POST";
 			c.ContentType = "application/json";
-			c.Headers.Add("X-Parse-Application-Id", "JycUHdjGxwuARBrDtJSD2yptpesBxyQDgzfN2aDE");
-			c.Headers.Add("X-Parse-REST-API-Key", "Kz7JypdKJWxdHa8sGtUPIJpZdOl1GKb8nlCERSnV");
 
-			System.Collections.Hashtable t = new System.Collections.Hashtable();
+			Hashtable t = new Hashtable();
 			t["content"] = content;
 			t["count"] = 1;
-			string json_query = JsonConvert.SerializeObject(t);
+			string json_query = Util.ToJson(t);
 
+			// ================================================================
 			// request
-			System.IO.Stream request_stream = c.GetRequestStream();
-			//System.IO.StreamWriter writer = new System.IO.StreamWriter(request_stream);
-			byte[] form_data = Util.bytes(json_query);
-			request_stream.Write(form_data, 0, form_data.Length);
-			//writer.Write(json_query);
-			request_stream.Close();
-
-			// reading response...
-			System.Net.WebResponse response = c.GetResponse();
-			System.IO.Stream stream = response.GetResponseStream();
-			System.IO.StreamReader reader = new System.IO.StreamReader(stream, Encoding.UTF8);
-			while (true)
+			// ================================================================
 			{
-				string line = reader.ReadLine();
-				if (line == null)
-					break;
-				Debug.WriteLine("Parse.com からのレスポンス: [" + line + "]");
+				Stream request_stream = c.GetRequestStream();
+				byte[] form_data = Util.bytes(json_query);
+				request_stream.Write(form_data, 0, form_data.Length);
+				request_stream.Close();
 			}
-			stream.Close();
-			Debug.WriteLine("新しいレコードを作成しました。content=[" + content + "]");
+
+			// ================================================================
+			// reading response...
+			// ================================================================
+			{
+				WebResponse response = c.GetResponse();
+				Stream stream = response.GetResponseStream();
+				StreamReader reader = new StreamReader(stream, Encoding.UTF8);
+				while (true)
+				{
+					string line = reader.ReadLine();
+					if (line == null)
+						break;
+					Debug.WriteLine("Parse.com からのレスポンス: [" + line + "]");
+				}
+				stream.Close();
+				Debug.WriteLine("新しいレコードを作成しました。content=[" + content + "]");
+			}
+		}
+
+		private static string _get_applcation_id()
+		{
+			return "JycUHdjGxwuARBrDtJSD2yptpesBxyQDgzfN2aDE";
+		}
+
+		private static string _get_api_key()
+		{
+			return "Kz7JypdKJWxdHa8sGtUPIJpZdOl1GKb8nlCERSnV";
+		}
+
+		private static HttpWebRequest _create_requester(string url)
+		{
+			HttpWebRequest c = HttpWebRequest.CreateHttp(url);
+			c.Headers.Add(Keys.APP_KEY, _get_applcation_id());
+			c.Headers.Add(Keys.REST_API_KEY, _get_api_key());
+			return c;
 		}
 
 		private static void Put(string object_id, string content, int count)
 		{
-			//System.Web.HttpRequest request = new System.Web.HttpRequest();
-			//System.Net.Http.HttpClient client = new System.Net.Http.HttpClient();
-			//client.DefaultRequestHeaders.Add("X-Parse-Application-Id", "JycUHdjGxwuARBrDtJSD2yptpesBxyQDgzfN2aDE");
-			//client.DefaultRequestHeaders.Add("X-Parse-REST-API-Key", "Kz7JypdKJWxdHa8sGtUPIJpZdOl1GKb8nlCERSnV");
-			//client.DefaultRequestHeaders.Add("Content-Type", "application/json");
-			//System.Net.Http.HttpResponseMessage response = client.GetAsync("https://api.parse.com/1/classes/TestObject/" + object_id).GetAwaiter().GetResult();
-
 			if (object_id == null || object_id == "")
 			{
 				CreateNew(content);
 				return;
 			}
 
+			// ================================================================
+			// creating a request...
+			// ================================================================
 			string url = "https://api.parse.com/1/classes/TestObject/" + object_id;
-			System.Net.HttpWebRequest c = System.Net.HttpWebRequest.CreateHttp(url);
+			HttpWebRequest c = _create_requester(url);
 			c.Method = "PUT";
 			c.ContentType = "application/json";
-			c.Headers.Add("X-Parse-Application-Id", "JycUHdjGxwuARBrDtJSD2yptpesBxyQDgzfN2aDE");
-			c.Headers.Add("X-Parse-REST-API-Key", "Kz7JypdKJWxdHa8sGtUPIJpZdOl1GKb8nlCERSnV");
-			string json_query = "{\"count\": " + count + "}";
 
-			// request
-			System.IO.Stream request_stream = c.GetRequestStream();
-			//System.IO.StreamWriter writer = new System.IO.StreamWriter(request_stream);
-			byte[] form_data = Util.bytes(json_query);
-			request_stream.Write(form_data, 0, form_data.Length);
-			//writer.Write(json_query);
-			request_stream.Close();
+			Hashtable t = new Hashtable();
+			t["count"] = count;
+			string json_query = Util.ToJson(t);
 
-			// reading response...
-			System.Net.WebResponse response = c.GetResponse();
-			System.IO.Stream stream = response.GetResponseStream();
-			System.IO.StreamReader reader = new System.IO.StreamReader(stream, Encoding.UTF8);
-			while (true)
+			// ================================================================
+			// sending request...
+			// ================================================================
 			{
-				string line = reader.ReadLine();
-				if (line == null)
-					break;
-				Debug.WriteLine("Parse.com からのレスポンス: [" + line + "]");
+				Stream request_stream = c.GetRequestStream();
+				byte[] form_data = Util.bytes(json_query);
+				request_stream.Write(form_data, 0, form_data.Length);
+				request_stream.Close();
 			}
-			stream.Close();
-			Debug.WriteLine("レコードを更新しました。content=[" + content + "], count=[" + count + "]");
+
+			// ================================================================
+			// reading response...
+			// ================================================================
+			{
+				WebResponse response = c.GetResponse();
+				Stream stream = response.GetResponseStream();
+				StreamReader reader = new StreamReader(stream, Encoding.UTF8);
+				while (true)
+				{
+					string line = reader.ReadLine();
+					if (line == null)
+						break;
+					Debug.WriteLine("Parse.com からのレスポンス: [" + line + "]");
+				}
+				stream.Close();
+				Debug.WriteLine("レコードを更新しました。content=[" + content + "], count=[" + count + "]");
+			}
 		}
 
 		private static void _push(string requested_keyword)
@@ -222,7 +220,7 @@ namespace fusens
 				return;
 
 			// クエリ(全行)
-			foreach(System.Data.DataRow row in EnumAll())
+			foreach(DataRow row in EnumAll())
 			{
 				string content = "" + row["tag"];
 				if (content != requested_keyword)
@@ -236,63 +234,6 @@ namespace fusens
 			Debug.WriteLine("キーワード [" + requested_keyword + "] は存在しません。");
 			
 			Put(null, requested_keyword, 1);
-
-			if (true)
-				return;
-
-			ParseQuery<ParseObject> query = new ParseQuery<ParseObject>(TABLE_NAME);
-			IEnumerable<ParseObject> result = query.FindAsync().GetAwaiter().GetResult();
-			foreach (var e in result)
-			{
-				string content = "";
-				int count = 0;
-				e.TryGetValue("content", out content);
-				e.TryGetValue("count", out count);
-				if (content == requested_keyword)
-				{
-					// 同一の行がみつかれば点数を加算して終了
-					e["count"] = count + 1;
-					e.SaveAsync().GetAwaiter().GetResult();
-					return;
-				}
-			}
-
-			//
-			// 見つからなかった場合は新しい行を作成
-			//
-			{
-				var new_record = new ParseObject(TABLE_NAME);
-				new_record["content"] = requested_keyword;
-				new_record["count"] = 1;
-				new_record.SaveAsync().GetAwaiter().GetResult();
-			}
-		}
-
-		private static void _delete(string requested_keyword)
-		{
-			if (requested_keyword == null)
-				return;
-			if (requested_keyword == "")
-				return;
-
-			//
-			// クエリ(全行)
-			//
-			ParseQuery<ParseObject> query = new ParseQuery<ParseObject>(TABLE_NAME);
-			IEnumerable<ParseObject> result = query.FindAsync().GetAwaiter().GetResult();
-			foreach (var e in result)
-			{
-				string content = "";
-				int count = 0;
-				e.TryGetValue("content", out content);
-				e.TryGetValue("count", out count);
-				if (content == requested_keyword)
-				{
-					// 同一の行がみつかれば削除して終了
-					e.DeleteAsync();
-					return;
-				}
-			}
 		}
 
 		private static readonly object MUTEX = "Parse オブジェクトの排他用...";
@@ -302,5 +243,11 @@ namespace fusens
 			Debug.WriteLine("インクリメント: キーワード=[" + content + "]");
 			_push(content);
 		}
+
+		private static class Keys
+		{
+			public static string APP_KEY = "X-Parse-Application-Id";
+			public static string REST_API_KEY = "X-Parse-REST-API-Key";
+		};
 	}
 }
